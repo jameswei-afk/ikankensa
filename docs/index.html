@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>検査仕様 打合せサイト ／ 檢驗規格討論網站</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="topbar">
+    <div>
+      <h1 data-i18n="site_title">検査仕様 打合せサイト</h1>
+      <div class="subtitle" data-i18n="subtitle">本社・台湾・仕入先で仕様を確認・相談するページです</div>
+    </div>
+    <button class="lang-btn" data-lang-toggle onclick="I18N.toggle()">中文</button>
+  </div>
+
+  <div class="container">
+    <input
+      id="search"
+      class="search-box"
+      type="search"
+      data-i18n-placeholder="search_placeholder"
+      placeholder="顧客・品番・品名で検索"
+    />
+    <div class="item-count" id="itemCount"></div>
+    <div id="list"></div>
+    <div class="footer-note" data-i18n="footer_note"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="config.js"></script>
+  <script src="i18n.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

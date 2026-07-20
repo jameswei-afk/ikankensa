@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>検査仕様 打合せサイト ／ 檢驗規格討論網站</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="topbar">
+    <div>
+      <h1 data-i18n="site_title">検査仕様 打合せサイト</h1>
+    </div>
+    <button class="lang-btn" data-lang-toggle onclick="I18N.toggle()">中文</button>
+  </div>
+
+  <div class="container">
+    <a class="back-link" href="index.html">&larr; <span data-i18n="back">一覧に戻る</span></a>
+
+    <div id="itemDetail"></div>
+
+    <div class="section-title" data-i18n="comments">コメント</div>
+    <div id="commentList" class="comment-list"></div>
+
+    <div class="comment-form">
+      <input id="authorInput" type="text" maxlength="50" data-i18n-placeholder="name_placeholder" placeholder="お名前・会社名" />
+      <textarea id="bodyInput" maxlength="2000" data-i18n-placeholder="comment_placeholder" placeholder="コメントを入力してください"></textarea>
+      <button id="postBtn" data-i18n="post" onclick="postComment()">投稿する</button>
+      <div id="formMsg" class="form-msg"></div>
+    </div>
+
+    <div class="footer-note" data-i18n="footer_note"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="config.js"></script>
+  <script src="i18n.js"></script>
+  <script src="item.js"></script>
+</body>
+</html>
