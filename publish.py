@@ -6,7 +6,8 @@ publish.py -- 銘環廠商討論網站 同步腳本
   1. 重新讀取「20250821_購入仕様書_完了状況一覧.xlsx」
   2. 篩選 メーカー == "銘環" 且 銘環確認 非空白、不等於 "-" 的品項
   3. 用管理番号（PS-xxxxx）在「購入仕様書」資料夾樹裡找出對應子資料夾
-  4. 抓出資料夾內檔名含「購入仕様書／購入仕様図／製品外観目視検査基準／検査基準書」的檔案
+  4. 抓出資料夾內檔名含「購入仕様書／購入仕様図／製品外観目視検査基準／検査基準書／検査成績書」的檔案，
+     同一關鍵字若同時有 PDF 跟其他格式的重複檔案，只保留 PDF
   5. 把品項資料 upsert 進 Supabase，檔案上傳到 Supabase Storage
 
 可重複執行（idempotent）：沒有變化的品項/檔案不會重複寫入或重傳。
@@ -55,7 +56,7 @@ COL_HINMEI = 9   # I: 品名
 COL_MEIKAN = 17  # Q: 銘環確認
 
 TARGET_MAKER = "銘環"
-FILE_KEYWORDS = ["購入仕様書", "購入仕様図", "製品外観目視検査基準", "検査基準書"]
+FILE_KEYWORDS = ["購入仕様書", "購入仕様図", "製品外観目視検査基準", "検査基準書", "検査成績書"]
 
 BUCKET = "item-files"
 
@@ -82,6 +83,27 @@ def load_dotenv(path: Path):
         key, _, value = line.partition("=")
         key, value = key.strip(), value.strip().strip('"').strip("'")
         os.environ.setdefault(key, value)
+
+
+def select_matched_files(files):
+    """依 FILE_KEYWORDS 逐一分組（每個檔名只算進第一個符合的關鍵字），
+    同一個關鍵字底下如果同時有 PDF 跟其他格式（Word／Excel）的重複檔案，
+    只保留 PDF；沒有 PDF 的話才保留原本的檔案（例如分頁的多個 PDF 會全部保留）。"""
+    groups = {k: [] for k in FILE_KEYWORDS}
+    for f in files:
+        for k in FILE_KEYWORDS:
+            if k in f:
+                groups[k].append(f)
+                break
+
+    selected = []
+    for k in FILE_KEYWORDS:
+        group = groups[k]
+        if not group:
+            continue
+        pdfs = [f for f in group if f.lower().endswith(".pdf")]
+        selected.extend(pdfs if pdfs else group)
+    return selected
 
 
 # ---------------------------------------------------------------------------
@@ -117,10 +139,11 @@ def extract_items(excel_path: Path, base_folder: Path):
             continue
         folder = Path(matches[0])
 
-        matched_files = [
+        candidate_files = [
             f for f in os.listdir(folder)
             if os.path.isfile(folder / f) and any(k in f for k in FILE_KEYWORDS)
         ]
+        matched_files = select_matched_files(candidate_files)
 
         items.append({
             "id": kanri,
