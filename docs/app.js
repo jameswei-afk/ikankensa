@@ -21,12 +21,10 @@ function renderList(items) {
   list.innerHTML = items.map((item) => `
     <a class="card" href="item.html?id=${encodeURIComponent(item.id)}">
       <div class="card-top">
-        <span class="card-id">${escapeHtml(item.id)}</span>
         <span class="badge">${escapeHtml(item.customer || "")}</span>
       </div>
       <div class="card-title">${escapeHtml(item.part_no || "")}</div>
       <div class="card-meta">${escapeHtml(item.part_name || "")}</div>
-      ${item.meikan_note ? `<div class="card-note">${escapeHtml(item.meikan_note)}</div>` : ""}
     </a>
   `).join("");
 }

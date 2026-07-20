@@ -23,8 +23,18 @@
     <div id="commentList" class="comment-list"></div>
 
     <div class="comment-form">
-      <input id="authorInput" type="text" maxlength="50" data-i18n-placeholder="name_placeholder" placeholder="お名前・会社名" />
+      <select id="authorInput">
+        <option value="" data-i18n="author_placeholder" disabled selected>コメントする立場を選んでください</option>
+        <option value="日本早川">日本早川</option>
+        <option value="台湾早川">台湾早川</option>
+        <option value="銘環">銘環</option>
+      </select>
       <textarea id="bodyInput" maxlength="2000" data-i18n-placeholder="comment_placeholder" placeholder="コメントを入力してください"></textarea>
+      <div class="attach-row">
+        <label class="attach-btn" for="fileInput">📎 <span data-i18n="attach">添付ファイル</span></label>
+        <input type="file" id="fileInput" accept="image/png,image/jpeg,image/gif,image/webp,.pdf,.doc,.docx,.xls,.xlsx" hidden />
+        <span id="attachPreview" class="attach-preview"></span>
+      </div>
       <button id="postBtn" data-i18n="post" onclick="postComment()">投稿する</button>
       <div id="formMsg" class="form-msg"></div>
     </div>

@@ -33,12 +33,14 @@ create table if not exists public.item_files (
 -- 3. comments：留言（本社／台灣／廠商都可留言，免登入）
 -- ---------------------------------------------------------------------
 create table if not exists public.comments (
-  id          bigint generated always as identity primary key,
-  item_id     text not null references public.items(id) on delete cascade,
-  author      text not null check (char_length(author) between 1 and 50),
-  body        text not null check (char_length(body) between 1 and 2000),
-  created_at  timestamptz not null default now(),
-  edit_token  uuid not null default gen_random_uuid()  -- 留言者本機保存，用來刪除自己的留言（不對外公開這個欄位）
+  id               bigint generated always as identity primary key,
+  item_id          text not null references public.items(id) on delete cascade,
+  author           text not null check (char_length(author) between 1 and 50),
+  body             text not null check (char_length(body) between 1 and 2000),
+  created_at       timestamptz not null default now(),
+  edit_token       uuid not null default gen_random_uuid(),  -- 留言者本機保存，用來刪除自己的留言（不對外公開這個欄位）
+  attachment_path  text,  -- comment-uploads bucket 內的路徑（圖片／檔案，選填）
+  attachment_name  text   -- 附加檔案的原始檔名
 );
 
 create index if not exists comments_item_id_idx on public.comments (item_id, created_at);
@@ -114,3 +116,37 @@ create policy "public read item-files" on storage.objects
 
 -- 沒有給 anon/authenticated 在 storage.objects 上的 insert/update/delete policy，
 -- 所以檔案上傳只能透過 publish.py 使用的 service_role key（該 key 會略過 RLS）。
+
+-- ---------------------------------------------------------------------
+-- 7. Storage bucket：comment-uploads（留言附加圖片／檔案，任何人可上傳，5MB／限定檔案類型）
+-- ---------------------------------------------------------------------
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'comment-uploads', 'comment-uploads', true,
+  5242880,
+  array[
+    'image/png', 'image/jpeg', 'image/gif', 'image/webp',
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  ]
+)
+on conflict (id) do update set
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types,
+  public = excluded.public;
+
+drop policy if exists "public read comment-uploads" on storage.objects;
+create policy "public read comment-uploads" on storage.objects
+  for select to anon, authenticated
+  using (bucket_id = 'comment-uploads');
+
+drop policy if exists "public upload comment-uploads" on storage.objects;
+create policy "public upload comment-uploads" on storage.objects
+  for insert to anon, authenticated
+  with check (bucket_id = 'comment-uploads');
+
+-- 同樣沒有開放 anon update/delete，留言附件不會因為刪除留言而自動從雲端空間清除
+-- （只會刪掉 comments 資料列本身），這是刻意的取捨，避免需要額外的伺服器端邏輯。

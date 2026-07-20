@@ -21,6 +21,23 @@ function fileUrl(storagePath, filename) {
   return `${SUPABASE_URL}/storage/v1/object/public/item-files/${path}${dl}`;
 }
 
+function attachmentUrl(storagePath, filename) {
+  const path = storagePath.split("/").map(encodeURIComponent).join("/");
+  const dl = filename ? `?download=${encodeURIComponent(filename)}` : "?download";
+  return `${SUPABASE_URL}/storage/v1/object/public/comment-uploads/${path}${dl}`;
+}
+
+function attachmentViewUrl(storagePath) {
+  // ダウンロード名を付けない、そのまま表示用の URL（画像プレビュー用）
+  return `${SUPABASE_URL}/storage/v1/object/public/comment-uploads/${storagePath
+    .split("/").map(encodeURIComponent).join("/")}`;
+}
+
+const IMAGE_EXT_RE = /\.(png|jpe?g|gif|webp)$/i;
+function isImageName(name) {
+  return IMAGE_EXT_RE.test(name || "");
+}
+
 function formatTime(iso) {
   const d = new Date(iso);
   return d.toLocaleString(I18N.lang === "ja" ? "ja-JP" : "zh-TW", {
@@ -50,6 +67,81 @@ function forgetMyToken(commentId) {
   const tokens = getMyTokens();
   delete tokens[commentId];
   localStorage.setItem(MY_TOKENS_KEY, JSON.stringify(tokens));
+}
+
+// --- 留言附加圖片／檔案 ---
+const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
+const ALLOWED_ATTACHMENT_TYPES = [
+  "image/png", "image/jpeg", "image/gif", "image/webp",
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+];
+
+let selectedFile = null;
+
+function renderAttachPreview() {
+  const el = document.getElementById("attachPreview");
+  if (!selectedFile) {
+    el.innerHTML = "";
+    return;
+  }
+  el.innerHTML = `
+    <span class="attach-chip">
+      ${escapeHtml(selectedFile.name)}
+      <button type="button" onclick="clearAttachment()">${I18N.t("attach_remove")}</button>
+    </span>
+  `;
+}
+
+function clearAttachment() {
+  selectedFile = null;
+  document.getElementById("fileInput").value = "";
+  renderAttachPreview();
+}
+
+function handleFileSelected(file) {
+  const msg = document.getElementById("formMsg");
+  if (!file) return;
+  if (file.size > MAX_ATTACHMENT_BYTES) {
+    msg.textContent = I18N.t("file_too_large");
+    msg.className = "form-msg error";
+    return;
+  }
+  if (!ALLOWED_ATTACHMENT_TYPES.includes(file.type)) {
+    msg.textContent = I18N.t("file_type_error");
+    msg.className = "form-msg error";
+    return;
+  }
+  msg.textContent = "";
+  selectedFile = file;
+  renderAttachPreview();
+}
+
+async function uploadAttachment(file) {
+  const ext = (file.name.match(/\.[a-zA-Z0-9]+$/) || [""])[0].toLowerCase();
+  const path = `${itemId}/${crypto.randomUUID()}${ext}`;
+  const { error } = await supabaseClient.storage
+    .from("comment-uploads")
+    .upload(path, file, { contentType: file.type });
+  if (error) throw error;
+  return { attachment_path: path, attachment_name: file.name };
+}
+
+function renderAttachment(c) {
+  if (!c.attachment_path) return "";
+  if (isImageName(c.attachment_name)) {
+    return `
+      <a href="${attachmentUrl(c.attachment_path, c.attachment_name)}" target="_blank" rel="noopener">
+        <img class="c-attach-img" src="${attachmentViewUrl(c.attachment_path)}" alt="${escapeHtml(c.attachment_name)}" />
+      </a>`;
+  }
+  return `
+    <a class="c-attach-file" href="${attachmentUrl(c.attachment_path, c.attachment_name)}" target="_blank" rel="noopener">
+      📎 ${escapeHtml(c.attachment_name)}
+    </a>`;
 }
 
 function renderItem() {
@@ -105,6 +197,7 @@ function renderComments() {
         ${myTokens[c.id] ? `<button class="c-delete" onclick="deleteComment(${c.id})">${I18N.t("delete")}</button>` : ""}
       </div>
       <div class="c-body">${escapeHtml(c.body)}</div>
+      ${renderAttachment(c)}
     </div>
   `).join("");
 }
@@ -143,7 +236,7 @@ async function loadItem() {
       supabaseClient.from("item_files").select("filename,storage_path").eq("item_id", itemId).order("filename"),
       supabaseClient
         .from("comments")
-        .select("id,item_id,author,body,created_at")
+        .select("id,item_id,author,body,created_at,attachment_path,attachment_name")
         .eq("item_id", itemId)
         .order("created_at", { ascending: true }),
     ]);
@@ -201,12 +294,26 @@ async function postComment() {
   msg.textContent = I18N.t("posting");
   msg.className = "form-msg";
 
+  let attachment = {};
+  if (selectedFile) {
+    msg.textContent = I18N.t("uploading");
+    try {
+      attachment = await uploadAttachment(selectedFile);
+    } catch (e) {
+      console.error(e);
+      btn.disabled = false;
+      msg.textContent = I18N.t("upload_error");
+      msg.className = "form-msg error";
+      return;
+    }
+  }
+
   const token = crypto.randomUUID();
 
   const { data, error } = await supabaseClient
     .from("comments")
-    .insert({ item_id: itemId, author, body, edit_token: token })
-    .select("id,item_id,author,body,created_at")
+    .insert({ item_id: itemId, author, body, edit_token: token, ...attachment })
+    .select("id,item_id,author,body,created_at,attachment_path,attachment_name")
     .single();
 
   btn.disabled = false;
@@ -226,7 +333,27 @@ async function postComment() {
 
   msg.textContent = "";
   bodyInput.value = "";
+  clearAttachment();
 }
+
+document.getElementById("fileInput").addEventListener("change", (e) => {
+  handleFileSelected(e.target.files[0]);
+});
+
+document.getElementById("bodyInput").addEventListener("paste", (e) => {
+  const items = e.clipboardData && e.clipboardData.items;
+  if (!items) return;
+  for (const item of items) {
+    if (item.type.startsWith("image/")) {
+      const file = item.getAsFile();
+      if (file) {
+        e.preventDefault();
+        handleFileSelected(file);
+      }
+      break;
+    }
+  }
+});
 
 window.onI18nApply = () => {
   renderItem();
