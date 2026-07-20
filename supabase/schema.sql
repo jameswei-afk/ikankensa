@@ -37,7 +37,8 @@ create table if not exists public.comments (
   item_id     text not null references public.items(id) on delete cascade,
   author      text not null check (char_length(author) between 1 and 50),
   body        text not null check (char_length(body) between 1 and 2000),
-  created_at  timestamptz not null default now()
+  created_at  timestamptz not null default now(),
+  edit_token  uuid not null default gen_random_uuid()  -- 留言者本機保存，用來刪除自己的留言（不對外公開這個欄位）
 );
 
 create index if not exists comments_item_id_idx on public.comments (item_id, created_at);
@@ -71,6 +72,28 @@ create policy "public insert comments" on public.comments
 -- 注意：items / item_files 沒有 anon insert/update/delete policy，
 -- 也沒有給 comments update/delete policy，所以公開使用者只能新增留言、
 -- 其餘資料只能透過 service_role key（publish.py）寫入或在 Supabase 後台手動處理。
+
+-- ---------------------------------------------------------------------
+-- 4b. 刪除自己的留言：用 edit_token 驗證，不需要登入。
+--     comments 表本身沒有開放 anon delete，只能透過這個函式、且 token 要對才能刪。
+-- ---------------------------------------------------------------------
+create or replace function public.delete_own_comment(p_comment_id bigint, p_token uuid)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  deleted_count int;
+begin
+  delete from public.comments
+  where id = p_comment_id and edit_token = p_token;
+  get diagnostics deleted_count = row_count;
+  return deleted_count > 0;
+end;
+$$;
+
+grant execute on function public.delete_own_comment(bigint, uuid) to anon, authenticated;
 
 -- ---------------------------------------------------------------------
 -- 5. Realtime：讓留言能即時推播到前端

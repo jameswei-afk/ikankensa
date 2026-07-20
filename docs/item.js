@@ -28,6 +28,30 @@ function formatTime(iso) {
   });
 }
 
+// 自分がこのブラウザで投稿したコメントだけ削除できるように、
+// コメント id -> edit_token をこの端末の localStorage に保存する
+const MY_TOKENS_KEY = "meikanMyCommentTokens";
+
+function getMyTokens() {
+  try {
+    return JSON.parse(localStorage.getItem(MY_TOKENS_KEY)) || {};
+  } catch {
+    return {};
+  }
+}
+
+function saveMyToken(commentId, token) {
+  const tokens = getMyTokens();
+  tokens[commentId] = token;
+  localStorage.setItem(MY_TOKENS_KEY, JSON.stringify(tokens));
+}
+
+function forgetMyToken(commentId) {
+  const tokens = getMyTokens();
+  delete tokens[commentId];
+  localStorage.setItem(MY_TOKENS_KEY, JSON.stringify(tokens));
+}
+
 function renderItem() {
   const el = document.getElementById("itemDetail");
   if (!currentItem) {
@@ -70,15 +94,40 @@ function renderComments() {
     el.innerHTML = `<div class="empty-state">${I18N.t("no_comments")}</div>`;
     return;
   }
+  const myTokens = getMyTokens();
   el.innerHTML = currentComments.map((c) => `
     <div class="comment">
       <div class="c-head">
-        <span class="c-author">${escapeHtml(c.author)}</span>
-        <span class="c-time">${formatTime(c.created_at)}</span>
+        <div class="c-who">
+          <span class="c-author">${escapeHtml(c.author)}</span>
+          <span class="c-time">${formatTime(c.created_at)}</span>
+        </div>
+        ${myTokens[c.id] ? `<button class="c-delete" onclick="deleteComment(${c.id})">${I18N.t("delete")}</button>` : ""}
       </div>
       <div class="c-body">${escapeHtml(c.body)}</div>
     </div>
   `).join("");
+}
+
+async function deleteComment(commentId) {
+  const token = getMyTokens()[commentId];
+  if (!token) return;
+  if (!window.confirm(I18N.t("delete_confirm"))) return;
+
+  const { data, error } = await supabaseClient.rpc("delete_own_comment", {
+    p_comment_id: commentId,
+    p_token: token,
+  });
+
+  if (error || !data) {
+    console.error(error);
+    window.alert(I18N.t("delete_error"));
+    return;
+  }
+
+  currentComments = currentComments.filter((c) => c.id !== commentId);
+  forgetMyToken(commentId);
+  renderComments();
 }
 
 async function loadItem() {
@@ -92,7 +141,11 @@ async function loadItem() {
     await Promise.all([
       supabaseClient.from("items").select("*").eq("id", itemId).maybeSingle(),
       supabaseClient.from("item_files").select("filename,storage_path").eq("item_id", itemId).order("filename"),
-      supabaseClient.from("comments").select("*").eq("item_id", itemId).order("created_at", { ascending: true }),
+      supabaseClient
+        .from("comments")
+        .select("id,item_id,author,body,created_at")
+        .eq("item_id", itemId)
+        .order("created_at", { ascending: true }),
     ]);
 
   if (itemErr) console.error(itemErr);
@@ -121,7 +174,8 @@ function subscribeToComments() {
       { event: "INSERT", schema: "public", table: "comments", filter: `item_id=eq.${itemId}` },
       (payload) => {
         if (currentComments.some((c) => c.id === payload.new.id)) return;
-        currentComments.push(payload.new);
+        const { edit_token, ...comment } = payload.new;
+        currentComments.push(comment);
         renderComments();
       }
     )
@@ -147,10 +201,12 @@ async function postComment() {
   msg.textContent = I18N.t("posting");
   msg.className = "form-msg";
 
+  const token = crypto.randomUUID();
+
   const { data, error } = await supabaseClient
     .from("comments")
-    .insert({ item_id: itemId, author, body })
-    .select()
+    .insert({ item_id: itemId, author, body, edit_token: token })
+    .select("id,item_id,author,body,created_at")
     .single();
 
   btn.disabled = false;
@@ -164,6 +220,7 @@ async function postComment() {
 
   if (data && !currentComments.some((c) => c.id === data.id)) {
     currentComments.push(data);
+    saveMyToken(data.id, token);
     renderComments();
   }
 

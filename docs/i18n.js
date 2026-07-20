@@ -26,6 +26,9 @@ const I18N_LABELS = {
     item_count: "件",
     not_found: "品項が見つかりませんでした。",
     footer_note: "※ このリンクを知っている方であれば、どなたでも閲覧・コメント投稿ができます。",
+    delete: "削除",
+    delete_confirm: "このコメントを削除しますか？",
+    delete_error: "削除に失敗しました。もう一度お試しください。",
   },
   zh: {
     site_title: "檢驗規格討論網站",
@@ -53,6 +56,9 @@ const I18N_LABELS = {
     item_count: "筆",
     not_found: "找不到這個品項。",
     footer_note: "※ 知道這個連結網址的人,都可以瀏覽與留言。",
+    delete: "刪除",
+    delete_confirm: "確定要刪除這則留言嗎?",
+    delete_error: "刪除失敗,請再試一次。",
   },
 };
 
