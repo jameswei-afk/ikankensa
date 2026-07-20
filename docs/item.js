@@ -153,13 +153,11 @@ function renderItem() {
   const item = currentItem;
   el.innerHTML = `
     <div class="detail-card">
-      <span class="card-id">${escapeHtml(item.id)}</span>
       <h2>${escapeHtml(item.part_no || "")} ${escapeHtml(item.part_name ? "／ " + item.part_name : "")}</h2>
       <dl class="meta-grid">
         <dt>${I18N.t("customer")}</dt><dd>${escapeHtml(item.customer || "-")}</dd>
         <dt>${I18N.t("maker")}</dt><dd>${escapeHtml(item.maker || "-")}</dd>
         <dt>${I18N.t("part_no")}</dt><dd>${escapeHtml(item.part_no || "-")}</dd>
-        <dt>${I18N.t("part_name")}</dt><dd>${escapeHtml(item.part_name || "-")}</dd>
       </dl>
       ${item.meikan_note ? `
         <div class="note-box">
