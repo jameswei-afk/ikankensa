@@ -159,10 +159,6 @@ function renderItem() {
         <dt>${I18N.t("maker")}</dt><dd>${escapeHtml(item.maker || "-")}</dd>
         <dt>${I18N.t("part_no")}</dt><dd>${escapeHtml(item.part_no || "-")}</dd>
       </dl>
-      ${item.meikan_note ? `
-        <div class="note-box">
-          <strong>${I18N.t("meikan_note")}</strong>: ${escapeHtml(item.meikan_note)}
-        </div>` : ""}
 
       <div class="section-title">${I18N.t("files")}</div>
       <div class="file-list">

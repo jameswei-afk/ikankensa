@@ -160,16 +160,6 @@ a:hover { text-decoration: underline; }
 .meta-grid dt { color: var(--text-muted); }
 .meta-grid dd { margin: 0; }
 
-.note-box {
-  background: #fff8e6;
-  border: 1px solid #f3e2ad;
-  color: #7a5c00;
-  padding: 10px 14px;
-  border-radius: 10px;
-  font-size: 14px;
-  margin-bottom: 4px;
-}
-
 .section-title {
   font-size: 14px;
   font-weight: 700;
