@@ -70,17 +70,25 @@ const I18N = {
     this.setLang(this.lang === "ja" ? "zh" : "ja");
   },
   apply() {
-    document.documentElement.lang = this.lang === "ja" ? "ja" : "zh-Hant";
-    document.querySelectorAll("[data-i18n]").forEach((el) => {
-      el.textContent = this.t(el.getAttribute("data-i18n"));
-    });
-    document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
-      el.setAttribute("placeholder", this.t(el.getAttribute("data-i18n-placeholder")));
-    });
-    document.querySelectorAll("[data-lang-toggle]").forEach((el) => {
-      el.textContent = this.t("lang_toggle");
-    });
-    if (typeof window.onI18nApply === "function") window.onI18nApply();
+    // renderItem() 等 render 関数がその内部で apply() を呼ぶことがあるため、
+    // onI18nApply() 経由で再び apply() が呼ばれても無限再帰しないようにガードする
+    if (this._applying) return;
+    this._applying = true;
+    try {
+      document.documentElement.lang = this.lang === "ja" ? "ja" : "zh-Hant";
+      document.querySelectorAll("[data-i18n]").forEach((el) => {
+        el.textContent = this.t(el.getAttribute("data-i18n"));
+      });
+      document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
+        el.setAttribute("placeholder", this.t(el.getAttribute("data-i18n-placeholder")));
+      });
+      document.querySelectorAll("[data-lang-toggle]").forEach((el) => {
+        el.textContent = this.t("lang_toggle");
+      });
+      if (typeof window.onI18nApply === "function") window.onI18nApply();
+    } finally {
+      this._applying = false;
+    }
   },
 };
 

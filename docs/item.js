@@ -40,29 +40,28 @@ function renderItem() {
       <span class="card-id">${escapeHtml(item.id)}</span>
       <h2>${escapeHtml(item.part_no || "")} ${escapeHtml(item.part_name ? "／ " + item.part_name : "")}</h2>
       <dl class="meta-grid">
-        <dt data-i18n="customer">顧客</dt><dd>${escapeHtml(item.customer || "-")}</dd>
-        <dt data-i18n="maker">メーカー</dt><dd>${escapeHtml(item.maker || "-")}</dd>
-        <dt data-i18n="part_no">品番</dt><dd>${escapeHtml(item.part_no || "-")}</dd>
-        <dt data-i18n="part_name">品名</dt><dd>${escapeHtml(item.part_name || "-")}</dd>
+        <dt>${I18N.t("customer")}</dt><dd>${escapeHtml(item.customer || "-")}</dd>
+        <dt>${I18N.t("maker")}</dt><dd>${escapeHtml(item.maker || "-")}</dd>
+        <dt>${I18N.t("part_no")}</dt><dd>${escapeHtml(item.part_no || "-")}</dd>
+        <dt>${I18N.t("part_name")}</dt><dd>${escapeHtml(item.part_name || "-")}</dd>
       </dl>
       ${item.meikan_note ? `
         <div class="note-box">
-          <strong data-i18n="meikan_note">確認事項</strong>: ${escapeHtml(item.meikan_note)}
+          <strong>${I18N.t("meikan_note")}</strong>: ${escapeHtml(item.meikan_note)}
         </div>` : ""}
 
-      <div class="section-title" data-i18n="files">関連資料</div>
+      <div class="section-title">${I18N.t("files")}</div>
       <div class="file-list">
         ${currentFiles.length
           ? currentFiles.map((f) => `
             <div class="file-row">
               <span class="fname">${escapeHtml(f.filename)}</span>
-              <a class="dl-btn" href="${fileUrl(f.storage_path, f.filename)}" download="${escapeHtml(f.filename)}" target="_blank" rel="noopener" data-i18n="download">ダウンロード</a>
+              <a class="dl-btn" href="${fileUrl(f.storage_path, f.filename)}" download="${escapeHtml(f.filename)}" target="_blank" rel="noopener">${I18N.t("download")}</a>
             </div>`).join("")
           : `<div class="empty-state">${I18N.t("no_files")}</div>`}
       </div>
     </div>
   `;
-  I18N.apply();
 }
 
 function renderComments() {
