@@ -13,11 +13,12 @@ function escapeHtml(str) {
   ));
 }
 
-function fileUrl(storagePath) {
-  return `${SUPABASE_URL}/storage/v1/object/public/item-files/${storagePath
-    .split("/")
-    .map(encodeURIComponent)
-    .join("/")}`;
+function fileUrl(storagePath, filename) {
+  const path = storagePath.split("/").map(encodeURIComponent).join("/");
+  // storage_path はハッシュ化された ASCII セーフなキーなので、
+  // ?download= でサーバー側に元のファイル名を Content-Disposition として返してもらう
+  const dl = filename ? `?download=${encodeURIComponent(filename)}` : "?download";
+  return `${SUPABASE_URL}/storage/v1/object/public/item-files/${path}${dl}`;
 }
 
 function formatTime(iso) {
@@ -55,7 +56,7 @@ function renderItem() {
           ? currentFiles.map((f) => `
             <div class="file-row">
               <span class="fname">${escapeHtml(f.filename)}</span>
-              <a class="dl-btn" href="${fileUrl(f.storage_path)}" target="_blank" rel="noopener" data-i18n="download">ダウンロード</a>
+              <a class="dl-btn" href="${fileUrl(f.storage_path, f.filename)}" download="${escapeHtml(f.filename)}" target="_blank" rel="noopener" data-i18n="download">ダウンロード</a>
             </div>`).join("")
           : `<div class="empty-state">${I18N.t("no_files")}</div>`}
       </div>

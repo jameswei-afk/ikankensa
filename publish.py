@@ -23,6 +23,7 @@ publish.py -- 銘環廠商討論網站 同步腳本
 """
 import argparse
 import glob
+import hashlib
 import mimetypes
 import os
 import sys
@@ -57,6 +58,15 @@ TARGET_MAKER = "銘環"
 FILE_KEYWORDS = ["購入仕様書", "購入仕様図", "製品外観目視検査基準", "検査基準書"]
 
 BUCKET = "item-files"
+
+
+def safe_storage_path(item_id: str, filename: str) -> str:
+    """Supabase Storage の object key は日本語などの非 ASCII 文字を受け付けないため、
+    ファイル名のハッシュ値で ASCII セーフなキーを作る（元のファイル名は item_files.filename に保存し、
+    ダウンロード時は download 属性で元のファイル名を復元する）。"""
+    ext = Path(filename).suffix
+    digest = hashlib.sha1(filename.encode("utf-8")).hexdigest()[:20]
+    return f"{item_id}/{digest}{ext}"
 
 
 # ---------------------------------------------------------------------------
@@ -234,6 +244,11 @@ class SupabaseClient:
 # main
 # ---------------------------------------------------------------------------
 def main():
+    # Windows のコンソールが cp932 などの場合に日本語/中国語の print で落ちないようにする
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
+
     parser = argparse.ArgumentParser(description="同步銘環品項與檔案到 Supabase")
     parser.add_argument("--excel", default=None, help="Excel 檔案路徑（覆蓋預設值）")
     parser.add_argument("--base-dir", default=None, help="購入仕様書 資料夾路徑（覆蓋預設值）")
@@ -297,7 +312,7 @@ def main():
                 skipped_upload_count += 1
                 continue
 
-            storage_path = f"{item['id']}/{filename}"
+            storage_path = safe_storage_path(item["id"], filename)
             client.upload_file(storage_path, local_path)
             client.upsert_item_file(item["id"], filename, storage_path, size_bytes)
             uploaded_count += 1
