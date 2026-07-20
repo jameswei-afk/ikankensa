@@ -8,7 +8,8 @@
 ```
 meikan-vendor-portal/
 ├── publish.py            # 本機同步腳本：讀 Excel → 比對資料夾 → 寫入 Supabase
-├── .env.example           # publish.py 需要的環境變數範例
+├── remove_item.py         # 移除已討論完成的品項（含檔案、留言、附件）
+├── .env.example           # publish.py / remove_item.py 需要的環境變數範例
 ├── supabase/
 │   └── schema.sql          # Supabase 資料表 + 權限設定，建專案後貼到 SQL Editor 執行一次
 └── docs/                    # 靜態前端網站（用 GitHub Pages 發布，資料夾必須叫 docs）
@@ -88,6 +89,20 @@ meikan-vendor-portal/
 3. 完成後，新確認完成的品項會自動出現在網站上，廠商即可看到並留言討論。
 
 腳本可重複執行，沒有變化的品項/檔案不會重複寫入或重傳，執行順序不影響結果。
+
+## 移除已討論完成的品項
+
+品項確定討論完、不需要再放網站上時，用 `remove_item.py` 一次清乾淨（items 資料列、關聯的
+留言、item-files 裡的參考資料檔案、comment-uploads 裡的留言附件，全部一起刪除）：
+
+```
+python remove_item.py PS-00046           # 先預覽會刪什麼，不會真的刪
+python remove_item.py PS-00046 --yes     # 確認沒問題後才加 --yes 真的執行
+```
+
+注意：這個刪除是**永久性的、無法復原**，執行前請先用不加 `--yes` 的預覽模式確認品項編號正確。
+之後如果 Excel 裡這個品項的「銘環確認」欄位還維持有內容，下次跑 `publish.py` 又會把它加回網站，
+所以真的要移除的話記得同時在 Excel 把該筆的銘環確認欄位清空或改成 `-`。
 
 ## 目前的篩選規則（如需調整可修改 `publish.py` 開頭常數）
 
