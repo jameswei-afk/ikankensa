@@ -162,11 +162,11 @@ function renderItem() {
   el.innerHTML = `
     <div class="detail-card">
       <h2>${escapeHtml(item.part_no || "")}</h2>
-      ${item.part_name ? `<div class="detail-subtitle">${escapeHtml(displayPartName(item))}</div>` : ""}
       <dl class="meta-grid">
         <dt>${I18N.t("customer")}</dt><dd>${escapeHtml(item.customer || "-")}</dd>
         <dt>${I18N.t("maker")}</dt><dd>${escapeHtml(item.maker || "-")}</dd>
         <dt>${I18N.t("part_no")}</dt><dd>${escapeHtml(item.part_no || "-")}</dd>
+        <dt>${I18N.t("part_name")}</dt><dd>${escapeHtml(displayPartName(item) || "-")}</dd>
       </dl>
 
       <div class="section-title">${I18N.t("files")}</div>
