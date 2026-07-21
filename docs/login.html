@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>検査仕様 打合せサイト ／ 檢驗規格討論網站</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="topbar">
+    <div>
+      <h1 data-i18n="site_title">検査仕様 打合せサイト</h1>
+    </div>
+    <button class="lang-btn" data-lang-toggle onclick="I18N.toggle()">中文</button>
+  </div>
+
+  <div class="container login-container">
+    <div class="login-card">
+      <div class="section-title" data-i18n="login_title">ログイン</div>
+      <input id="emailInput" type="email" autocomplete="username" data-i18n-placeholder="login_email" placeholder="メールアドレス" />
+      <input id="passwordInput" type="password" autocomplete="current-password" data-i18n-placeholder="login_password" placeholder="パスワード" />
+      <button id="loginBtn" data-i18n="login_button" onclick="doLogin()">ログイン</button>
+      <div id="loginMsg" class="form-msg"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="config.js"></script>
+  <script src="i18n.js"></script>
+  <script src="login.js"></script>
+</body>
+</html>

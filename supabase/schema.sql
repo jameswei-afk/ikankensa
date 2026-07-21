@@ -47,7 +47,9 @@ create index if not exists comments_item_id_idx on public.comments (item_id, cre
 create index if not exists item_files_item_id_idx on public.item_files (item_id);
 
 -- ---------------------------------------------------------------------
--- 4. Row Level Security：公開可讀，留言公開可新增，其餘只能靠 service_role（publish.py）寫入
+-- 4. Row Level Security：僅限登入（authenticated）帳號可讀，登入帳號可新增留言，
+--    其餘資料只能靠 service_role（publish.py）寫入。
+--    登入帳號是共用的 3 組帳密（本社／台湾／銘環），見 README 說明。
 -- ---------------------------------------------------------------------
 alter table public.items      enable row level security;
 alter table public.item_files enable row level security;
@@ -55,29 +57,30 @@ alter table public.comments   enable row level security;
 
 drop policy if exists "public read items" on public.items;
 create policy "public read items" on public.items
-  for select to anon, authenticated using (true);
+  for select to authenticated using (true);
 
 drop policy if exists "public read item_files" on public.item_files;
 create policy "public read item_files" on public.item_files
-  for select to anon, authenticated using (true);
+  for select to authenticated using (true);
 
 drop policy if exists "public read comments" on public.comments;
 create policy "public read comments" on public.comments
-  for select to anon, authenticated using (true);
+  for select to authenticated using (true);
 
 drop policy if exists "public insert comments" on public.comments;
 create policy "public insert comments" on public.comments
-  for insert to anon, authenticated with check (
+  for insert to authenticated with check (
     char_length(author) between 1 and 50 and char_length(body) between 1 and 2000
   );
 
--- 注意：items / item_files 沒有 anon insert/update/delete policy，
--- 也沒有給 comments update/delete policy，所以公開使用者只能新增留言、
+-- 注意：items / item_files 沒有 insert/update/delete policy，
+-- 也沒有給 comments update/delete policy，所以登入帳號只能新增留言、
 -- 其餘資料只能透過 service_role key（publish.py）寫入或在 Supabase 後台手動處理。
+-- anon（未登入）角色完全沒有任何 policy，等同完全擋掉未登入的讀取／寫入請求。
 
 -- ---------------------------------------------------------------------
--- 4b. 刪除自己的留言：用 edit_token 驗證，不需要登入。
---     comments 表本身沒有開放 anon delete，只能透過這個函式、且 token 要對才能刪。
+-- 4b. 刪除自己的留言：用 edit_token 驗證，不需要額外的權限判斷。
+--     comments 表本身沒有開放 delete policy，只能透過這個函式、且 token 要對才能刪。
 -- ---------------------------------------------------------------------
 create or replace function public.delete_own_comment(p_comment_id bigint, p_token uuid)
 returns boolean
@@ -95,7 +98,7 @@ begin
 end;
 $$;
 
-grant execute on function public.delete_own_comment(bigint, uuid) to anon, authenticated;
+grant execute on function public.delete_own_comment(bigint, uuid) to authenticated;
 
 -- ---------------------------------------------------------------------
 -- 5. Realtime：讓留言能即時推播到前端
@@ -103,7 +106,11 @@ grant execute on function public.delete_own_comment(bigint, uuid) to anon, authe
 alter publication supabase_realtime add table public.comments;
 
 -- ---------------------------------------------------------------------
--- 6. Storage bucket：item-files（公開唯讀，只有 service_role 能上傳）
+-- 6. Storage bucket：item-files（只有 service_role 能上傳）
+--    注意：bucket 本身是 public bucket，代表如果有人「已經知道」某個檔案的
+--    完整網址（雜湊過的路徑，不會被公開列出、也需要先登入才看得到清單），
+--    直接打那個網址還是能下載，不受下面這條 authenticated policy 限制。
+--    這是為了保持簡單（不用簽名網址）而接受的取捨，詳見 README 的安全性說明。
 -- ---------------------------------------------------------------------
 insert into storage.buckets (id, name, public)
 values ('item-files', 'item-files', true)
@@ -111,7 +118,7 @@ on conflict (id) do nothing;
 
 drop policy if exists "public read item-files" on storage.objects;
 create policy "public read item-files" on storage.objects
-  for select to anon, authenticated
+  for select to authenticated
   using (bucket_id = 'item-files');
 
 -- 沒有給 anon/authenticated 在 storage.objects 上的 insert/update/delete policy，
@@ -140,12 +147,12 @@ on conflict (id) do update set
 
 drop policy if exists "public read comment-uploads" on storage.objects;
 create policy "public read comment-uploads" on storage.objects
-  for select to anon, authenticated
+  for select to authenticated
   using (bucket_id = 'comment-uploads');
 
 drop policy if exists "public upload comment-uploads" on storage.objects;
 create policy "public upload comment-uploads" on storage.objects
-  for insert to anon, authenticated
+  for insert to authenticated
   with check (bucket_id = 'comment-uploads');
 
 -- 同樣沒有開放 anon update/delete，留言附件不會因為刪除留言而自動從雲端空間清除

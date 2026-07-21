@@ -34,6 +34,13 @@ const I18N_LABELS = {
     file_too_large: "ファイルは5MB以内にしてください。",
     file_type_error: "対応していないファイル形式です（画像／PDF／Word／Excel のみ）。",
     upload_error: "ファイルのアップロードに失敗しました。もう一度お試しください。",
+    logout: "ログアウト",
+    login_title: "ログイン",
+    login_email: "メールアドレス",
+    login_password: "パスワード",
+    login_button: "ログイン",
+    login_empty_error: "メールアドレスとパスワードを入力してください。",
+    login_error: "メールアドレスまたはパスワードが違います。",
   },
   zh: {
     site_title: "檢驗規格討論網站",
@@ -69,6 +76,13 @@ const I18N_LABELS = {
     file_too_large: "檔案請控制在 5MB 以內。",
     file_type_error: "不支援這種檔案格式(僅限圖片／PDF／Word／Excel)。",
     upload_error: "檔案上傳失敗,請再試一次。",
+    logout: "登出",
+    login_title: "登入",
+    login_email: "電子郵件",
+    login_password: "密碼",
+    login_button: "登入",
+    login_empty_error: "請輸入電子郵件與密碼。",
+    login_error: "電子郵件或密碼錯誤。",
   },
 };
 

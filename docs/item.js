@@ -1,5 +1,3 @@
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
 const params = new URLSearchParams(window.location.search);
 const itemId = params.get("id");
 
@@ -227,6 +225,9 @@ async function deleteComment(commentId) {
 }
 
 async function loadItem() {
+  const session = await requireLogin();
+  if (!session) return;
+
   if (!itemId) {
     currentItem = null;
     renderItem();

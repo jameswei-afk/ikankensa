@@ -11,7 +11,10 @@
     <div>
       <h1 data-i18n="site_title">検査仕様 打合せサイト</h1>
     </div>
-    <button class="lang-btn" data-lang-toggle onclick="I18N.toggle()">中文</button>
+    <div class="topbar-actions">
+      <button class="lang-btn" data-lang-toggle onclick="I18N.toggle()">中文</button>
+      <a class="lang-btn" href="#" data-logout data-i18n="logout">ログアウト</a>
+    </div>
   </div>
 
   <div class="container">
@@ -45,6 +48,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="config.js"></script>
   <script src="i18n.js"></script>
+  <script src="auth.js"></script>
   <script src="item.js"></script>
 </body>
 </html>

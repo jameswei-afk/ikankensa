@@ -1,5 +1,3 @@
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
 let allItems = [];
 
 function escapeHtml(str) {
@@ -53,6 +51,9 @@ function applyFilter() {
 }
 
 async function loadItems() {
+  const session = await requireLogin();
+  if (!session) return;
+
   const list = document.getElementById("list");
   list.innerHTML = `<div class="empty-state">${I18N.t("loading")}</div>`;
 

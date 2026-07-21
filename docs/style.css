@@ -48,7 +48,14 @@ a:hover { text-decoration: underline; }
   margin-top: 2px;
 }
 
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .lang-btn {
+  display: inline-block;
   border: 1px solid var(--border);
   background: var(--card-bg);
   color: var(--text);
@@ -57,8 +64,9 @@ a:hover { text-decoration: underline; }
   cursor: pointer;
   font-size: 13px;
   white-space: nowrap;
+  text-decoration: none;
 }
-.lang-btn:hover { background: var(--accent-soft); }
+.lang-btn:hover { background: var(--accent-soft); text-decoration: none; }
 
 .container {
   max-width: 760px;
@@ -336,3 +344,40 @@ a:hover { text-decoration: underline; }
   .container { padding: 12px; }
   .detail-card { padding: 16px; }
 }
+
+.login-container {
+  display: flex;
+  justify-content: center;
+  padding-top: 40px;
+}
+.login-card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 24px;
+  width: 100%;
+  max-width: 360px;
+}
+.login-card input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+  margin-bottom: 10px;
+  font-family: inherit;
+  background: var(--card-bg);
+  color: var(--text);
+}
+.login-card button {
+  width: 100%;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.login-card button:hover { background: var(--accent-dark); }
+.login-card button:disabled { opacity: 0.6; cursor: default; }
