@@ -145,8 +145,14 @@ a:hover { text-decoration: underline; }
 }
 
 .detail-card h2 {
-  margin: 4px 0 12px;
+  margin: 4px 0 2px;
   font-size: 20px;
+}
+
+.detail-subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
 }
 
 .meta-grid {

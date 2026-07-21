@@ -8,6 +8,14 @@ function escapeHtml(str) {
   ));
 }
 
+// Excel の品名は「品番_品名」の形式で入っているため、品番の重複を避けて
+// 最初の "_" より後ろだけを表示用の品名として使う
+function displayPartName(item) {
+  const name = item.part_name || "";
+  const idx = name.indexOf("_");
+  return idx >= 0 ? name.slice(idx + 1) : name;
+}
+
 function renderList(items) {
   const list = document.getElementById("list");
   const count = document.getElementById("itemCount");
@@ -24,7 +32,7 @@ function renderList(items) {
         <span class="badge">${escapeHtml(item.customer || "")}</span>
       </div>
       <div class="card-title">${escapeHtml(item.part_no || "")}</div>
-      <div class="card-meta">${escapeHtml(item.part_name || "")}</div>
+      <div class="card-meta">${escapeHtml(displayPartName(item))}</div>
     </a>
   `).join("");
 }

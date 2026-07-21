@@ -13,6 +13,14 @@ function escapeHtml(str) {
   ));
 }
 
+// Excel の品名は「品番_品名」の形式で入っているため、品番の重複を避けて
+// 最初の "_" より後ろだけを表示用の品名として使う
+function displayPartName(item) {
+  const name = item.part_name || "";
+  const idx = name.indexOf("_");
+  return idx >= 0 ? name.slice(idx + 1) : name;
+}
+
 function fileUrl(storagePath, filename) {
   const path = storagePath.split("/").map(encodeURIComponent).join("/");
   // storage_path はハッシュ化された ASCII セーフなキーなので、
@@ -153,7 +161,8 @@ function renderItem() {
   const item = currentItem;
   el.innerHTML = `
     <div class="detail-card">
-      <h2>${escapeHtml(item.part_no || "")} ${escapeHtml(item.part_name ? "／ " + item.part_name : "")}</h2>
+      <h2>${escapeHtml(item.part_no || "")}</h2>
+      ${item.part_name ? `<div class="detail-subtitle">${escapeHtml(displayPartName(item))}</div>` : ""}
       <dl class="meta-grid">
         <dt>${I18N.t("customer")}</dt><dd>${escapeHtml(item.customer || "-")}</dd>
         <dt>${I18N.t("maker")}</dt><dd>${escapeHtml(item.maker || "-")}</dd>
