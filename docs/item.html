@@ -26,12 +26,9 @@
     <div id="commentList" class="comment-list"></div>
 
     <div class="comment-form">
-      <select id="authorInput">
-        <option value="" data-i18n="author_placeholder" disabled selected>コメントする立場を選んでください</option>
-        <option value="日本早川">日本早川</option>
-        <option value="台湾早川">台湾早川</option>
-        <option value="銘環">銘環</option>
-      </select>
+      <div class="author-display">
+        <span data-i18n="commenting_as">コメントする立場</span>：<strong id="authorLabel"></strong>
+      </div>
       <textarea id="bodyInput" maxlength="2000" data-i18n-placeholder="comment_placeholder" placeholder="コメントを入力してください"></textarea>
       <div class="attach-row">
         <label class="attach-btn" for="fileInput">📎 <span data-i18n="attach">添付ファイル</span></label>

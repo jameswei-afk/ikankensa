@@ -302,7 +302,6 @@ a:hover { text-decoration: underline; }
   padding: 16px;
 }
 .comment-form input,
-.comment-form select,
 .comment-form textarea {
   width: 100%;
   border: 1px solid var(--border);
@@ -315,6 +314,13 @@ a:hover { text-decoration: underline; }
   color: var(--text);
 }
 .comment-form textarea { min-height: 80px; resize: vertical; }
+
+.author-display {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+.author-display strong { color: var(--text); }
 .comment-form button {
   background: var(--accent);
   color: #fff;

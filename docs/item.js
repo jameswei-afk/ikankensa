@@ -4,6 +4,7 @@ const itemId = params.get("id");
 let currentItem = null;
 let currentFiles = [];
 let currentComments = [];
+let currentAuthor = "";
 
 function escapeHtml(str) {
   return String(str ?? "").replace(/[&<>"']/g, (c) => (
@@ -228,6 +229,9 @@ async function loadItem() {
   const session = await requireLogin();
   if (!session) return;
 
+  currentAuthor = accountLabel(session);
+  document.getElementById("authorLabel").textContent = currentAuthor;
+
   if (!itemId) {
     currentItem = null;
     renderItem();
@@ -280,15 +284,14 @@ function subscribeToComments() {
 }
 
 async function postComment() {
-  const authorInput = document.getElementById("authorInput");
   const bodyInput = document.getElementById("bodyInput");
   const msg = document.getElementById("formMsg");
   const btn = document.getElementById("postBtn");
 
-  const author = authorInput.value.trim();
+  const author = currentAuthor;
   const body = bodyInput.value.trim();
 
-  if (!author || !body) {
+  if (!body) {
     msg.textContent = I18N.t("empty_error");
     msg.className = "form-msg error";
     return;

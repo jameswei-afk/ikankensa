@@ -138,7 +138,8 @@ python remove_item.py PS-00046 --yes     # 確認沒問題後才加 --yes 真的
 - 每則留言都能被「自己（同一台瀏覽器/裝置）」刪除：送出留言時瀏覽器會產生一組隨機金鑰存在該瀏覽器的
   localStorage，只有同一瀏覽器留的言旁邊才會出現「刪除」按鈕。清瀏覽器資料或換裝置就無法再刪除舊留言。
   別人的留言／垃圾留言仍需到 Supabase 後台的 Table Editor 手動刪除該筆 `comments` 資料。
-- 留言身份固定為「日本早川／台湾早川／銘環」三選一（下拉選單），如需增加選項可調整 `docs/item.html` 裡的 `<select id="authorInput">`。
+- 留言身份不再手動選，而是依登入帳號自動帶入（見 `docs/auth.js` 的 `ACCOUNT_LABELS`）。
+  新增/更換帳號時記得同步更新這個對照表，否則新帳號留言時身份欄位會直接顯示 email。
 - 留言可以附加一張圖片或檔案（限 5MB，圖片／PDF／Word／Excel），支援直接貼上截圖。附件存在 `comment-uploads`
   這個 bucket，跟留言刪除一樣，刪除留言不會自動清掉附件檔案本身，只會清掉留言紀錄。
 - 若之後要開放給更多メーカー，只需調整 `publish.py` 裡的 `TARGET_MAKER` 常數，或改成支援多個メーカー的清單。
