@@ -257,6 +257,8 @@ async function loadItem() {
   currentFiles = files || [];
   currentComments = comments || [];
 
+  if (currentItem) markItemSeen(itemId);
+
   document.title = currentItem
     ? `${currentItem.part_no || currentItem.id} - ${document.title}`
     : document.title;
@@ -277,6 +279,7 @@ function subscribeToComments() {
         if (currentComments.some((c) => c.id === payload.new.id)) return;
         const { edit_token, ...comment } = payload.new;
         currentComments.push(comment);
+        markItemSeen(itemId);
         renderComments();
       }
     )
@@ -335,6 +338,7 @@ async function postComment() {
   if (data && !currentComments.some((c) => c.id === data.id)) {
     currentComments.push(data);
     saveMyToken(data.id, token);
+    markItemSeen(itemId);
     renderComments();
   }
 

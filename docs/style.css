@@ -131,6 +131,28 @@ a:hover { text-decoration: underline; }
   color: var(--text-muted);
 }
 
+.card-activity {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.card-activity.muted { opacity: 0.6; }
+.card-activity.unseen {
+  color: var(--accent-dark);
+  font-weight: 600;
+}
+.new-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #e0453c;
+  flex-shrink: 0;
+  display: inline-block;
+}
+
 .empty-state {
   text-align: center;
   color: var(--text-muted);

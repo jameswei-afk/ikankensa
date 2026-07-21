@@ -101,6 +101,27 @@ $$;
 grant execute on function public.delete_own_comment(bigint, uuid) to authenticated;
 
 -- ---------------------------------------------------------------------
+-- 4c. items_with_comment_stats：品項 + 留言數／最新留言時間，給列表頁用來
+--     排序、顯示「哪個品項最近有新活動」，不用另外做通知機制。
+--     security_invoker 讓這個 view 沿用查詢者本人的 RLS 權限（仍然要求登入），
+--     不會因為 view 而繞過上面 items/comments 的權限限制。
+-- ---------------------------------------------------------------------
+create or replace view public.items_with_comment_stats
+with (security_invoker = true) as
+select
+  i.*,
+  coalesce(c.comment_count, 0) as comment_count,
+  c.last_comment_at
+from public.items i
+left join (
+  select item_id, count(*) as comment_count, max(created_at) as last_comment_at
+  from public.comments
+  group by item_id
+) c on c.item_id = i.id;
+
+grant select on public.items_with_comment_stats to authenticated;
+
+-- ---------------------------------------------------------------------
 -- 5. Realtime：讓留言能即時推播到前端
 -- ---------------------------------------------------------------------
 alter publication supabase_realtime add table public.comments;

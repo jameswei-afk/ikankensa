@@ -14,6 +14,26 @@ function displayPartName(item) {
   return idx >= 0 ? name.slice(idx + 1) : name;
 }
 
+function formatTime(iso) {
+  const d = new Date(iso);
+  return d.toLocaleString(I18N.lang === "ja" ? "ja-JP" : "zh-TW", {
+    year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit",
+  });
+}
+
+function renderActivity(item) {
+  const count = item.comment_count || 0;
+  if (count === 0) {
+    return `<div class="card-activity muted">${I18N.t("no_comments_short")}</div>`;
+  }
+  const unseen = isItemUnseen(item.id, item.last_comment_at);
+  return `
+    <div class="card-activity${unseen ? " unseen" : ""}">
+      ${unseen ? `<span class="new-dot"></span>` : ""}
+      💬 ${count} ${I18N.t("item_count_comments")} ・ ${formatTime(item.last_comment_at)}
+    </div>`;
+}
+
 function renderList(items) {
   const list = document.getElementById("list");
   const count = document.getElementById("itemCount");
@@ -31,6 +51,7 @@ function renderList(items) {
       </div>
       <div class="card-title">${escapeHtml(item.part_no || "")}</div>
       <div class="card-meta">${escapeHtml(displayPartName(item))}</div>
+      ${renderActivity(item)}
     </a>
   `).join("");
 }
@@ -58,8 +79,9 @@ async function loadItems() {
   list.innerHTML = `<div class="empty-state">${I18N.t("loading")}</div>`;
 
   const { data, error } = await supabaseClient
-    .from("items")
-    .select("id,customer,maker,part_no,part_name,meikan_note,updated_at")
+    .from("items_with_comment_stats")
+    .select("id,customer,maker,part_no,part_name,meikan_note,updated_at,comment_count,last_comment_at")
+    .order("last_comment_at", { ascending: false, nullsFirst: false })
     .order("customer", { ascending: true })
     .order("part_no", { ascending: true });
 

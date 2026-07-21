@@ -17,7 +17,8 @@ meikan-vendor-portal/
     ├── index.html / app.js       # 品項列表（feed）
     ├── item.html / item.js       # 品項詳情：檔案下載＋留言
     ├── login.html / login.js     # 登入頁
-    ├── auth.js                   # 共用的登入檢查／登出邏輯
+    ├── auth.js                   # 共用的登入檢查／登出邏輯／帳號對應留言身份
+    ├── seen.js                   # 本機「已讀」狀態，列表頁用來標示哪個品項有新留言
     ├── config.js                 # 填入 Supabase URL / anon key
     ├── i18n.js                   # 日文／中文介面切換
     └── style.css
@@ -143,3 +144,8 @@ python remove_item.py PS-00046 --yes     # 確認沒問題後才加 --yes 真的
 - 留言可以附加一張圖片或檔案（限 5MB，圖片／PDF／Word／Excel），支援直接貼上截圖。附件存在 `comment-uploads`
   這個 bucket，跟留言刪除一樣，刪除留言不會自動清掉附件檔案本身，只會清掉留言紀錄。
 - 若之後要開放給更多メーカー，只需調整 `publish.py` 裡的 `TARGET_MAKER` 常數，或改成支援多個メーカー的清單。
+- 沒有 email／即時通知機制。改成用「列表頁自動排序＋標示」的方式：有新留言的品項會排到最前面，
+  並顯示留言數與最新留言時間；「這台瀏覽器沒看過的新留言」會額外標紅點。這個「已讀」狀態存在
+  `localStorage`（`docs/seen.js`），只認裝置、不認人，換裝置或清瀏覽器資料就會全部變回「未讀」。
+  如果之後想要真正的 email／Line/Teams 通知，需要另外串 Supabase Database Webhook + 一個外部通知服務，
+  屬於較大的擴充，目前沒有做。
