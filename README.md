@@ -9,7 +9,6 @@
 ```
 meikan-vendor-portal/
 ├── publish.py             # 本機同步腳本：讀 Excel → 比對資料夾 → 寫入 Supabase
-├── publish_shipments.py   # 出船管理同步腳本：讀「銘環船_出船管理」Excel → 寫入 Supabase
 ├── remove_item.py         # 移除已討論完成的品項（含檔案、留言、附件）
 ├── .env.example           # 各同步腳本需要的環境變數範例
 ├── supabase/
@@ -17,11 +16,9 @@ meikan-vendor-portal/
 └── docs/                    # 靜態前端網站（用 GitHub Pages 發布，資料夾必須叫 docs）
     ├── index.html / app.js       # 品項列表（feed）
     ├── item.html / item.js       # 品項詳情：檔案下載＋留言
-    ├── shipping.html / shipping.js  # 出船管理：訂單檢查排程與出貨船期
     ├── login.html / login.js     # 登入頁
     ├── auth.js                   # 共用的登入檢查／登出邏輯／帳號對應留言身份
     ├── seen.js                   # 本機「已讀」狀態，列表頁用來標示哪個品項有新留言
-    ├── shipment-seen.js          # 出船管理專用的「已讀」狀態（跟 seen.js 分開）
     ├── config.js                 # 填入 Supabase URL / anon key
     ├── i18n.js                   # 日文／中文介面切換
     └── style.css
@@ -109,24 +106,6 @@ https://supabase.com/dashboard/project/dgxjofupgfnyvgttuask/auth/users
 
 腳本可重複執行，沒有變化的品項/檔案不會重複寫入或重傳，執行順序不影響結果。
 
-## 出船管理（訂單檢查排程與船期）同步流程
-
-這是另一份 3 社共用的 Excel（`【送信用】銘環船_出船管理.xlsx`，路徑可用環境變數
-`SHIPMENTS_EXCEL_PATH` 覆蓋），追蹤逐筆訂單的 HTW 検査排程與出貨船期，網站上是
-**唯讀顯示**（可搜尋、可留言討論），資料本身仍在 Excel 裡維護，同步指令：
-
-```
-python publish_shipments.py            # 先預覽解析結果，不會寫入 Supabase
-python publish_shipments.py --dry-run  # 同上，加這個參數才是預覽
-```
-
-（跟 `publish.py` 不同：`shipments` 表只會 upsert，**不會**自動刪除 Excel 裡消失的
-舊列，避免連動刪掉該筆訂單底下的留言討論歷史；`sailing_schedule`〔船期參考表〕則是
-每次同步都全刪重建，因為那張表本身沒有留言、不會有資料流失的問題。）
-
-網站上點開任一筆訂單可以展開留言討論，用法跟品項頁的留言完全一樣（登入帳號自動帶入
-身份、可附加圖片/檔案、即時更新、自己可以刪除自己的留言）。
-
 ## 移除已討論完成的品項
 
 品項確定討論完、不需要再放網站上時，用 `remove_item.py` 一次清乾淨（items 資料列、關聯的
@@ -165,10 +144,8 @@ python remove_item.py PS-00046 --yes     # 確認沒問題後才加 --yes 真的
 - 留言可以附加一張圖片或檔案（限 5MB，圖片／PDF／Word／Excel），支援直接貼上截圖。附件存在 `comment-uploads`
   這個 bucket，跟留言刪除一樣，刪除留言不會自動清掉附件檔案本身，只會清掉留言紀錄。
 - 若之後要開放給更多メーカー，只需調整 `publish.py` 裡的 `TARGET_MAKER` 常數，或改成支援多個メーカー的清單。
-- 出船管理（`shipping.html`）278 筆訂單一次全部渲染成表格，每列點開才會延遲載入留言，
-  避免一次打 278 次留言查詢；即時推播（realtime）也只訂閱目前展開中的那幾列，收合時會取消訂閱。
 - 「已讀」判斷（列表頁紅點）比較的是伺服器時間，不是瀏覽器時鐘，避免瀏覽器時鐘跟伺服器有落差時，
-  自己剛留的言被誤判成「未讀」。這個修正同時套用在品項頁與出船管理頁（`seen.js` / `shipment-seen.js`）。
+  自己剛留的言被誤判成「未讀」。
 - 沒有 email／即時通知機制。改成用「列表頁自動排序＋標示」的方式：有新留言的品項會排到最前面，
   並顯示留言數與最新留言時間；「這台瀏覽器沒看過的新留言」會額外標紅點。這個「已讀」狀態存在
   `localStorage`（`docs/seen.js`），只認裝置、不認人，換裝置或清瀏覽器資料就會全部變回「未讀」。
