@@ -2,6 +2,7 @@ let allShipments = [];
 let scheduleRows = [];
 let currentAuthor = "";
 const expandedIds = new Set();
+const editingIds = new Set();  // shipmentId -> 目前是否處於「編輯追蹤欄位」模式
 const commentsCache = {};      // shipmentId -> comments[]
 const selectedFiles = {};      // shipmentId -> File
 const activeChannels = {};     // shipmentId -> realtime channel
@@ -138,7 +139,7 @@ function renderScheduleTable() {
       </tbody>
     </table>
   `;
-  I18N.apply();
+  I18N.applyTo(el);
 }
 
 function renderShipmentTable(rows) {
@@ -170,7 +171,7 @@ function renderShipmentTable(rows) {
       </tbody>
     </table>
   `;
-  I18N.apply();
+  I18N.applyTo(wrap);
 
   // 展開狀態在重新 render 列表（例如搜尋）時要還原
   expandedIds.forEach((id) => {
@@ -258,40 +259,101 @@ async function insertDetailRow(shipmentId) {
   }
 
   td.innerHTML = renderDetailContent(s);
+  I18N.applyTo(td);
   subscribeShipment(shipmentId);
 }
 
-function renderDetailContent(s) {
-  const comments = commentsCache[s.id] || [];
-  const myTokens = getMyShipTokens();
+function renderTrackingView(s) {
+  const updatedLine = s.updated_by
+    ? `<div class="ship-updated-line">${I18N.t("ship_last_updated")}${escapeHtml(s.updated_by)}・${formatDateTime(s.updated_at)}</div>`
+    : "";
   return `
-    <div class="ship-detail">
-      <button type="button" class="ship-collapse-btn" data-ship-id="${escapeHtml(s.id)}" data-i18n="ship_collapse">▲ 閉じる</button>
+    <div class="ship-tracking-view">
+      <button type="button" class="ship-edit-btn" data-ship-id="${escapeHtml(s.id)}">✎ <span data-i18n="ship_edit">編集</span></button>
       <dl class="meta-grid">
         <dt data-i18n="ship_col_delivery_type">納品種別(分納)</dt><dd>${escapeHtml(s.delivery_type || "-")}</dd>
         <dt data-i18n="ship_col_htw_delivery">HTWへの検査品納入日</dt><dd>${formatDate(s.htw_delivery_date)}</dd>
         <dt data-i18n="ship_col_htw_planned">HTW検査(計画日)</dt><dd>${formatDate(s.htw_inspection_planned_date)}</dd>
         <dt data-i18n="ship_col_htw_minutes">HTW検査工数(分)</dt><dd>${s.htw_inspection_minutes ?? "-"}</dd>
+        <dt data-i18n="ship_col_inspection">HTW検査完了日</dt><dd>${formatDate(s.htw_inspection_done_date)}</dd>
         <dt data-i18n="ship_col_mh_pickup">MH集荷日</dt><dd>${formatDate(s.mh_pickup_date)}</dd>
-        <dt data-i18n="ship_col_excel_comment">コメント(Excel)</dt><dd>${escapeHtml(s.excel_comment || "-")}</dd>
+        <dt data-i18n="ship_col_twh_ship">TWH出荷(月・船)</dt><dd>${escapeHtml(s.twh_ship_month || "-")} ${escapeHtml(s.twh_ship_vessel || "")}</dd>
+        <dt data-i18n="ship_col_komaki_ship">小牧出荷(月・船)</dt><dd>${escapeHtml(s.komaki_ship_month || "-")} ${escapeHtml(s.komaki_ship_vessel || "")}</dd>
+        <dt data-i18n="ship_col_arrival">日本入荷日</dt><dd>${formatDate(s.japan_arrival_date)}</dd>
+        <dt data-i18n="ship_col_excel_comment">メモ</dt><dd>${escapeHtml(s.excel_comment || "-")}</dd>
       </dl>
+      ${updatedLine}
+    </div>
+  `;
+}
+
+function renderTrackingEdit(s) {
+  return `
+    <form class="ship-edit-form" data-ship-id="${escapeHtml(s.id)}">
+      <label><span data-i18n="ship_col_htw_delivery">HTWへの検査品納入日</span>
+        <input type="date" data-field="htw_delivery_date" value="${s.htw_delivery_date || ""}" /></label>
+      <label><span data-i18n="ship_col_htw_planned">HTW検査(計画日)</span>
+        <input type="date" data-field="htw_inspection_planned_date" value="${s.htw_inspection_planned_date || ""}" /></label>
+      <label><span data-i18n="ship_col_htw_minutes">HTW検査工数(分)</span>
+        <input type="number" data-field="htw_inspection_minutes" value="${s.htw_inspection_minutes ?? ""}" /></label>
+      <label><span data-i18n="ship_col_inspection">HTW検査完了日</span>
+        <input type="date" data-field="htw_inspection_done_date" value="${s.htw_inspection_done_date || ""}" /></label>
+      <label><span data-i18n="ship_col_mh_pickup">MH集荷日</span>
+        <input type="date" data-field="mh_pickup_date" value="${s.mh_pickup_date || ""}" /></label>
+      <label><span data-i18n="ship_col_twh_ship">TWH出荷(月・船)</span>
+        <span class="ship-edit-pair">
+          <input type="text" data-field="twh_ship_month" value="${escapeHtml(s.twh_ship_month || "")}" placeholder="8月" />
+          <input type="text" data-field="twh_ship_vessel" value="${escapeHtml(s.twh_ship_vessel || "")}" placeholder="1船目" />
+        </span>
+      </label>
+      <label><span data-i18n="ship_col_komaki_ship">小牧出荷(月・船)</span>
+        <span class="ship-edit-pair">
+          <input type="text" data-field="komaki_ship_month" value="${escapeHtml(s.komaki_ship_month || "")}" placeholder="8月" />
+          <input type="text" data-field="komaki_ship_vessel" value="${escapeHtml(s.komaki_ship_vessel || "")}" placeholder="1船目" />
+        </span>
+      </label>
+      <label><span data-i18n="ship_col_arrival">日本入荷日</span>
+        <input type="date" data-field="japan_arrival_date" value="${s.japan_arrival_date || ""}" /></label>
+      <label class="ship-edit-full"><span data-i18n="ship_col_excel_comment">メモ</span>
+        <textarea data-field="excel_comment">${escapeHtml(s.excel_comment || "")}</textarea></label>
+      <div class="ship-edit-actions">
+        <button type="submit" class="ship-save-btn" data-i18n="ship_save">保存</button>
+        <button type="button" class="ship-cancel-btn" data-ship-id="${escapeHtml(s.id)}" data-i18n="ship_cancel">キャンセル</button>
+      </div>
+      <div id="editMsg-${cssEscape(s.id)}" class="form-msg"></div>
+    </form>
+  `;
+}
+
+function renderCommentsListHtml(s) {
+  const comments = commentsCache[s.id] || [];
+  const myTokens = getMyShipTokens();
+  return comments.length === 0
+    ? `<div class="empty-state">${I18N.t("no_comments")}</div>`
+    : comments.map((c) => `
+      <div class="comment">
+        <div class="c-head">
+          <div class="c-who">
+            <span class="c-author">${escapeHtml(c.author)}</span>
+            <span class="c-time">${formatDateTime(c.created_at)}</span>
+          </div>
+          ${myTokens[c.id] ? `<button class="c-delete" data-comment-id="${c.id}" data-ship-id="${escapeHtml(s.id)}">${I18N.t("delete")}</button>` : ""}
+        </div>
+        <div class="c-body">${escapeHtml(c.body)}</div>
+        ${renderAttachment(c)}
+      </div>`).join("");
+}
+
+function renderDetailContent(s) {
+  const trackingBlock = editingIds.has(s.id) ? renderTrackingEdit(s) : renderTrackingView(s);
+  return `
+    <div class="ship-detail">
+      <button type="button" class="ship-collapse-btn" data-ship-id="${escapeHtml(s.id)}" data-i18n="ship_collapse">▲ 閉じる</button>
+      ${trackingBlock}
 
       <div class="section-title">${I18N.t("comments")}</div>
       <div class="comment-list" id="commentList-${cssEscape(s.id)}">
-        ${comments.length === 0
-          ? `<div class="empty-state">${I18N.t("no_comments")}</div>`
-          : comments.map((c) => `
-            <div class="comment">
-              <div class="c-head">
-                <div class="c-who">
-                  <span class="c-author">${escapeHtml(c.author)}</span>
-                  <span class="c-time">${formatDateTime(c.created_at)}</span>
-                </div>
-                ${myTokens[c.id] ? `<button class="c-delete" data-comment-id="${c.id}" data-ship-id="${escapeHtml(s.id)}">${I18N.t("delete")}</button>` : ""}
-              </div>
-              <div class="c-body">${escapeHtml(c.body)}</div>
-              ${renderAttachment(c)}
-            </div>`).join("")}
+        ${renderCommentsListHtml(s)}
       </div>
 
       <div class="comment-form">
@@ -332,6 +394,16 @@ document.addEventListener("click", async (e) => {
     toggleExpand(collapseBtn.dataset.shipId);
     return;
   }
+  const editBtn = e.target.closest(".ship-edit-btn");
+  if (editBtn) {
+    enterShipmentEditMode(editBtn.dataset.shipId);
+    return;
+  }
+  const cancelBtn = e.target.closest(".ship-cancel-btn");
+  if (cancelBtn) {
+    exitShipmentEditMode(cancelBtn.dataset.shipId);
+    return;
+  }
   const delBtn = e.target.closest(".c-delete");
   if (delBtn) {
     await deleteShipmentComment(delBtn.dataset.shipId, Number(delBtn.dataset.commentId));
@@ -346,6 +418,19 @@ document.addEventListener("click", async (e) => {
   if (postBtn) {
     await postShipmentComment(postBtn.dataset.shipId);
     return;
+  }
+});
+
+document.addEventListener("submit", async (e) => {
+  const editForm = e.target.closest(".ship-edit-form");
+  if (editForm) {
+    e.preventDefault();
+    await saveShipmentEdits(editForm.dataset.shipId);
+    return;
+  }
+  if (e.target.id === "newOrderForm") {
+    e.preventDefault();
+    await createShipment();
   }
 });
 
@@ -505,8 +590,138 @@ function refreshDetailContent(shipmentId) {
   const row = document.getElementById(`detail-${cssEscape(shipmentId)}`);
   if (!row) return;
   const s = allShipments.find((r) => r.id === shipmentId);
+  if (editingIds.has(shipmentId)) {
+    // 編輯追蹤欄位中時，留言相關的更新（貼文字／即時推播收到新留言）只重繪
+    // 留言清單，不要整塊重繪，否則會把使用者還沒送出的編輯表單內容蓋掉。
+    const list = document.getElementById(`commentList-${cssEscape(shipmentId)}`);
+    if (list) list.innerHTML = renderCommentsListHtml(s);
+    return;
+  }
   row.querySelector("td").innerHTML = renderDetailContent(s);
-  I18N.apply();
+  I18N.applyTo(row);
+}
+
+function enterShipmentEditMode(shipmentId) {
+  editingIds.add(shipmentId);
+  const row = document.getElementById(`detail-${cssEscape(shipmentId)}`);
+  const s = allShipments.find((r) => r.id === shipmentId);
+  if (row && s) {
+    row.querySelector("td").innerHTML = renderDetailContent(s);
+    I18N.applyTo(row);
+  }
+}
+
+function exitShipmentEditMode(shipmentId) {
+  editingIds.delete(shipmentId);
+  const row = document.getElementById(`detail-${cssEscape(shipmentId)}`);
+  const s = allShipments.find((r) => r.id === shipmentId);
+  if (row && s) {
+    row.querySelector("td").innerHTML = renderDetailContent(s);
+    I18N.applyTo(row);
+  }
+}
+
+function refreshShipmentRow(shipmentId) {
+  const s = allShipments.find((r) => r.id === shipmentId);
+  const row = document.querySelector(`.ship-row[data-id="${cssId(shipmentId)}"]`);
+  if (!row || !s) return;
+  row.outerHTML = renderShipmentRow(s);
+}
+
+async function saveShipmentEdits(shipmentId) {
+  const form = document.querySelector(`.ship-edit-form[data-ship-id="${cssId(shipmentId)}"]`);
+  if (!form) return;
+  const msg = document.getElementById(`editMsg-${cssEscape(shipmentId)}`);
+  const saveBtn = form.querySelector(".ship-save-btn");
+
+  const payload = { updated_by: currentAuthor };
+  form.querySelectorAll("[data-field]").forEach((el) => {
+    const raw = el.value.trim();
+    payload[el.dataset.field] = raw === "" ? null : (el.type === "number" ? Number(raw) : raw);
+  });
+
+  saveBtn.disabled = true;
+  msg.textContent = I18N.t("ship_saving");
+  msg.className = "form-msg";
+
+  const { data, error } = await supabaseClient
+    .from("shipments")
+    .update(payload)
+    .eq("id", shipmentId)
+    .select()
+    .single();
+
+  saveBtn.disabled = false;
+
+  if (error) {
+    console.error(error);
+    msg.textContent = I18N.t("ship_save_error");
+    msg.className = "form-msg error";
+    return;
+  }
+
+  const idx = allShipments.findIndex((r) => r.id === shipmentId);
+  if (idx >= 0) allShipments[idx] = { ...allShipments[idx], ...data };
+  editingIds.delete(shipmentId);
+  refreshShipmentRow(shipmentId);
+  const row = document.getElementById(`detail-${cssEscape(shipmentId)}`);
+  const s = allShipments.find((r) => r.id === shipmentId);
+  if (row && s) {
+    row.querySelector("td").innerHTML = renderDetailContent(s);
+    I18N.applyTo(row);
+  }
+}
+
+async function createShipment() {
+  const form = document.getElementById("newOrderForm");
+  const msg = document.getElementById("newOrderMsg");
+  const submitBtn = form.querySelector('button[type="submit"]');
+
+  const orderNo = document.getElementById("newOrderNo").value.trim();
+  const lineNo = document.getElementById("newLineNo").value.trim();
+  if (!orderNo || !lineNo) {
+    msg.textContent = I18N.t("new_order_required_error");
+    msg.className = "form-msg error";
+    return;
+  }
+
+  const qtyRaw = document.getElementById("newOrderQty").value.trim();
+  const payload = {
+    id: `${orderNo}_${lineNo}`,
+    customer: document.getElementById("newCustomer").value.trim() || null,
+    part_no: document.getElementById("newPartNo").value.trim() || null,
+    order_no: orderNo,
+    line_no: lineNo,
+    order_qty: qtyRaw === "" ? null : Number(qtyRaw),
+    delivery_type: document.getElementById("newDeliveryType").value.trim() || null,
+    order_due_date: document.getElementById("newOrderDueDate").value || null,
+  };
+
+  submitBtn.disabled = true;
+  msg.textContent = I18N.t("posting");
+  msg.className = "form-msg";
+
+  const { data, error } = await supabaseClient
+    .from("shipments")
+    .insert(payload)
+    .select()
+    .single();
+
+  submitBtn.disabled = false;
+
+  if (error) {
+    console.error(error);
+    msg.textContent = error.code === "23505" ? I18N.t("new_order_duplicate_error") : I18N.t("new_order_error");
+    msg.className = "form-msg error";
+    return;
+  }
+
+  allShipments.push(data);
+  form.reset();
+  msg.textContent = I18N.t("new_order_success");
+  msg.className = "form-msg";
+  document.getElementById("newOrderDetails").open = false;
+  applyFilter();
 }
 
 function bumpCommentBadge(shipmentId, lastCommentAt, delta = 1) {

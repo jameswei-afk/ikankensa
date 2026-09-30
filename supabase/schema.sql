@@ -320,3 +320,92 @@ alter publication supabase_realtime add table public.shipment_comments;
 -- 15. 留言附件沿用現有的 comment-uploads bucket，路徑會加 shipments/ 前綴
 --     （例：shipments/{shipment_id}/{uuid}.ext），跟品項留言附件的路徑
 --     （{item_id}/{uuid}.ext）不會混淆，不需要另外建 bucket 或加 policy。
+
+-- =======================================================================
+-- 出船管理 - 方向A：改為網站直接編輯追蹤欄位 / 新增訂單
+-- （不再靠 Excel 中轉；sailing_schedule 船期參考表不受影響，仍由
+--  publish_shipments.py 同步）
+-- =======================================================================
+
+-- ---------------------------------------------------------------------
+-- 16. updated_by：記錄最後編輯者（公司名稱，跟留言 author 同一套邏輯）
+-- ---------------------------------------------------------------------
+alter table public.shipments add column if not exists updated_by text;
+
+-- ---------------------------------------------------------------------
+-- 17. 新增訂單時，若沒有帶 row_order 就自動排到最後面
+-- ---------------------------------------------------------------------
+create or replace function public.set_shipment_row_order()
+returns trigger
+language plpgsql
+as $$
+begin
+  if new.row_order is null then
+    select coalesce(max(row_order), 0) + 1 into new.row_order from public.shipments;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists shipments_set_row_order on public.shipments;
+create trigger shipments_set_row_order
+  before insert on public.shipments
+  for each row execute function public.set_shipment_row_order();
+
+-- ---------------------------------------------------------------------
+-- 18. 每次 update 一律用伺服器時間覆寫 updated_at，不採信前端傳的值
+--     （沿用這個專案「不要比較 client 時鐘」的教訓，見 seen.js 的修法）
+-- ---------------------------------------------------------------------
+create or replace function public.set_shipment_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+drop trigger if exists shipments_set_updated_at on public.shipments;
+create trigger shipments_set_updated_at
+  before update on public.shipments
+  for each row execute function public.set_shipment_updated_at();
+
+-- ---------------------------------------------------------------------
+-- 19. RLS：開放 authenticated 新增訂單／更新追蹤欄位
+--     （欄位層級的實際限制在下面第 20 節用 column-level grant 做，
+--      這裡的 policy 只負責「哪些列可以動」，不是「哪些欄位可以動」）
+-- ---------------------------------------------------------------------
+drop policy if exists "authenticated insert shipments" on public.shipments;
+create policy "authenticated insert shipments" on public.shipments
+  for insert to authenticated
+  with check (order_no is not null and line_no is not null);
+
+drop policy if exists "authenticated update shipments" on public.shipments;
+create policy "authenticated update shipments" on public.shipments
+  for update to authenticated
+  using (true)
+  with check (true);
+
+-- ---------------------------------------------------------------------
+-- 20. 欄位層級權限：即使有 update policy，authenticated 也只能改下面這些
+--     「追蹤欄位」，訂單基本資料（得意先／品番／発注No／行No／発注数量／
+--     発注納期／納品種別）維持唯讀，就算前端程式碼有 bug 想改，
+--     Postgres 也會直接拒絕該次 UPDATE（權限不足），不是只靠前端不顯示
+--     編輯框這種弱防護。updated_at 不開放，一律交給上面第 18 節的 trigger。
+-- ---------------------------------------------------------------------
+revoke update on public.shipments from authenticated;
+grant update (
+  htw_delivery_date,
+  htw_inspection_planned_date,
+  htw_inspection_minutes,
+  htw_inspection_done_date,
+  mh_pickup_date,
+  twh_ship_month,
+  twh_ship_vessel,
+  komaki_ship_month,
+  komaki_ship_vessel,
+  japan_arrival_date,
+  excel_comment,
+  updated_by
+) on public.shipments to authenticated;

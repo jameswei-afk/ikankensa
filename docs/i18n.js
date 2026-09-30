@@ -67,8 +67,25 @@ const I18N_LABELS = {
     ship_col_htw_planned: "HTW検査(計画日)",
     ship_col_htw_minutes: "HTW検査工数(分)",
     ship_col_mh_pickup: "MH集荷日",
-    ship_col_excel_comment: "コメント(Excel)",
+    ship_col_excel_comment: "メモ",
+    ship_col_twh_ship: "TWH出荷(月・船)",
+    ship_col_komaki_ship: "小牧出荷(月・船)",
     ship_collapse: "▲ 閉じる",
+    ship_edit: "編集",
+    ship_save: "保存",
+    ship_cancel: "キャンセル",
+    ship_saving: "保存中…",
+    ship_save_error: "保存に失敗しました。もう一度お試しください。",
+    ship_last_updated: "最終更新：",
+    ship_col_order_no: "発注No",
+    ship_col_line_no: "行No",
+    ship_col_order_qty: "発注数量",
+    new_order_summary: "＋ 新しい注文を追加",
+    new_order_submit: "追加する",
+    new_order_success: "注文を追加しました。",
+    new_order_duplicate_error: "この発注No／行No はすでに存在します。",
+    new_order_error: "追加に失敗しました。もう一度お試しください。",
+    new_order_required_error: "発注No と 行No は必須です。",
   },
   zh: {
     site_title: "檢驗規格討論網站",
@@ -137,8 +154,25 @@ const I18N_LABELS = {
     ship_col_htw_planned: "HTW検査(計画日)",
     ship_col_htw_minutes: "HTW検査工数(分)",
     ship_col_mh_pickup: "MH集荷日",
-    ship_col_excel_comment: "備註(Excel)",
+    ship_col_excel_comment: "備註",
+    ship_col_twh_ship: "TWH出貨(月・船)",
+    ship_col_komaki_ship: "小牧出貨(月・船)",
     ship_collapse: "▲ 收合",
+    ship_edit: "編輯",
+    ship_save: "儲存",
+    ship_cancel: "取消",
+    ship_saving: "儲存中…",
+    ship_save_error: "儲存失敗,請再試一次。",
+    ship_last_updated: "最後更新：",
+    ship_col_order_no: "発注No",
+    ship_col_line_no: "行No",
+    ship_col_order_qty: "発注数量",
+    new_order_summary: "＋ 新增訂單",
+    new_order_submit: "新增",
+    new_order_success: "已新增訂單。",
+    new_order_duplicate_error: "這個発注No／行No 已經有訂單存在。",
+    new_order_error: "新增失敗,請再試一次。",
+    new_order_required_error: "発注No 與 行No 為必填。",
   },
 };
 
@@ -175,6 +209,17 @@ const I18N = {
     } finally {
       this._applying = false;
     }
+  },
+  // apply() の全域版（onI18nApply() 経由で全体を再描画する）とは別に、
+  // 特定のコンテナだけ翻訳したいとき用（例：shipping.js が自分で新規生成した
+  // 要素を翻訳する場合）。onI18nApply() を呼ばないので再入・多重描画を起こさない。
+  applyTo(root) {
+    root.querySelectorAll("[data-i18n]").forEach((el) => {
+      el.textContent = this.t(el.getAttribute("data-i18n"));
+    });
+    root.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
+      el.setAttribute("placeholder", this.t(el.getAttribute("data-i18n-placeholder")));
+    });
   },
 };
 
