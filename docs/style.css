@@ -486,6 +486,20 @@ a:hover { text-decoration: underline; }
 .ship-detail .meta-grid {
   grid-template-columns: max-content 1fr;
 }
+.ship-collapse-btn {
+  display: block;
+  margin: 0 0 16px auto;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-alt, #f3f4f6);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 13px;
+}
+.ship-collapse-btn:hover {
+  background: var(--border);
+}
 
 .muted { color: var(--text-muted); }
 

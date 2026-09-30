@@ -172,11 +172,6 @@ function renderShipmentTable(rows) {
   `;
   I18N.apply();
 
-  document.getElementById("shipmentTbody").addEventListener("click", (e) => {
-    const row = e.target.closest(".ship-row");
-    if (row) toggleExpand(row.dataset.id);
-  });
-
   // 展開狀態在重新 render 列表（例如搜尋）時要還原
   expandedIds.forEach((id) => {
     if (rows.some((s) => s.id === id)) insertDetailRow(id);
@@ -271,6 +266,7 @@ function renderDetailContent(s) {
   const myTokens = getMyShipTokens();
   return `
     <div class="ship-detail">
+      <button type="button" class="ship-collapse-btn" data-ship-id="${escapeHtml(s.id)}" data-i18n="ship_collapse">▲ 閉じる</button>
       <dl class="meta-grid">
         <dt data-i18n="ship_col_delivery_type">納品種別(分納)</dt><dd>${escapeHtml(s.delivery_type || "-")}</dd>
         <dt data-i18n="ship_col_htw_delivery">HTWへの検査品納入日</dt><dd>${formatDate(s.htw_delivery_date)}</dd>
@@ -321,7 +317,21 @@ function cssId(id) {
   return id.replace(/"/g, '\\"');
 }
 
+// #shipmentTableWrap 本体は renderShipmentTable() で再生成されない固定コンテナなので、
+// ここで一度だけ委譲リスナーを登録する（renderShipmentTable の都度 tbody に登録すると、
+// I18N.apply() 経由の再入で同じ tbody に二重登録され、1クリックで2回トグルして
+// 見た目上「反応しない」状態になるバグがあったため）。
+document.getElementById("shipmentTableWrap").addEventListener("click", (e) => {
+  const row = e.target.closest(".ship-row");
+  if (row) toggleExpand(row.dataset.id);
+});
+
 document.addEventListener("click", async (e) => {
+  const collapseBtn = e.target.closest(".ship-collapse-btn");
+  if (collapseBtn) {
+    toggleExpand(collapseBtn.dataset.shipId);
+    return;
+  }
   const delBtn = e.target.closest(".c-delete");
   if (delBtn) {
     await deleteShipmentComment(delBtn.dataset.shipId, Number(delBtn.dataset.commentId));

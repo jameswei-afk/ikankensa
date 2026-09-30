@@ -56,20 +56,31 @@ def parse_yyyymmdd(value):
 
 def parse_excel_serial(value):
     """HTW検査完了日のような Excel シリアル値（例："46230"）を date に変換する。
-    セルが最初から日付書式で datetime になっている場合はそのまま使う。"""
+    セルが最初から日付書式で datetime になっている場合はそのまま使う。
+    人が手入力した "2026.09.30" 等のテキスト日付（Excel 側で日付として
+    認識されていないケース）も、フォールバックとしてパースを試みる。"""
     if value is None:
         return None
     if isinstance(value, datetime.datetime):
         return value.date()
     if isinstance(value, datetime.date):
         return value
+    s = str(value).strip()
+    if not s:
+        return None
     try:
-        serial = float(value)
+        serial = float(s)
+        if serial <= 0:
+            return None
+        return EXCEL_EPOCH + datetime.timedelta(days=serial)
     except (TypeError, ValueError):
-        return None
-    if serial <= 0:
-        return None
-    return EXCEL_EPOCH + datetime.timedelta(days=serial)
+        pass
+    for fmt in ("%Y.%m.%d", "%Y/%m/%d", "%Y-%m-%d"):
+        try:
+            return datetime.datetime.strptime(s, fmt).date()
+        except ValueError:
+            continue
+    return None
 
 
 def parse_number(value):

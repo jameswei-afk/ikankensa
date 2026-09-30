@@ -68,6 +68,7 @@ const I18N_LABELS = {
     ship_col_htw_minutes: "HTW検査工数(分)",
     ship_col_mh_pickup: "MH集荷日",
     ship_col_excel_comment: "コメント(Excel)",
+    ship_collapse: "▲ 閉じる",
   },
   zh: {
     site_title: "檢驗規格討論網站",
@@ -137,6 +138,7 @@ const I18N_LABELS = {
     ship_col_htw_minutes: "HTW検査工数(分)",
     ship_col_mh_pickup: "MH集荷日",
     ship_col_excel_comment: "備註(Excel)",
+    ship_collapse: "▲ 收合",
   },
 };
 
