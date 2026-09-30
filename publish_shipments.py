@@ -2,18 +2,17 @@
 """
 publish_shipments.py -- 出船管理（3社共用出貨排程）同步腳本
 
-讀取「銘環船_出船管理」Excel 的船期參考表（Sheet2），同步進 Supabase 的
-sailing_schedule 表（每次全刪重建）。
+讀取「銘環船_出船管理」Excel，把逐筆訂單的 HTW 検査排程／出貨資訊、
+以及船期參考表，同步進 Supabase（shipments / sailing_schedule 兩張表）。
 
-【重要】shipments（逐筆訂單的 HTW 検査排程／出貨資訊）自從改成三方直接在
-網站上編輯追蹤欄位之後，資料源頭已經是網站，不再是這份 Excel。這支腳本預設
-「不會」同步 shipments，只有加 --sync-shipments-too 才會用 Excel 整列覆蓋
-（會蓋掉網站上的編輯，正常操作不應該用）。
+跟 publish.py 是同樣的操作習慣，但資料來源、schema 完全獨立：
+  - shipments：只做 upsert，不會自動刪除 Excel 裡消失的舊列
+    （避免連動刪掉該筆訂單底下的留言討論歷史）
+  - sailing_schedule：純參考資料、無留言，每次同步用「全刪重建」
 
 使用方式：
-    python publish_shipments.py                     # 只同步 sailing_schedule
-    python publish_shipments.py --dry-run            # 只顯示解析結果，不連線 Supabase
-    python publish_shipments.py --sync-shipments-too # 連 shipments 也整批覆蓋（危險，見上）
+    python publish_shipments.py            # 正式執行
+    python publish_shipments.py --dry-run  # 只顯示解析結果，不連線 Supabase
 
 環境變數（可寫在同目錄的 .env，或用系統環境變數）：
     SUPABASE_URL               同 publish.py
@@ -170,17 +169,6 @@ def main():
     parser = argparse.ArgumentParser(description="同步出船管理排程到 Supabase")
     parser.add_argument("--excel", default=None, help="Excel 檔案路徑（覆蓋預設值）")
     parser.add_argument("--dry-run", action="store_true", help="只顯示解析結果，不連線 Supabase")
-    parser.add_argument(
-        "--sync-shipments-too",
-        action="store_true",
-        help=(
-            "連 shipments（逐筆訂單）表也一併用 Excel 內容整列覆蓋。"
-            "自從出船管理改成三方直接在網站上編輯追蹤欄位後，這個表的資料源頭"
-            "已經是網站，不再是 Excel——加這個旗標會把網站上編輯過的追蹤欄位"
-            "蓋回 Excel 的舊值，正常操作不應該加這個旗標。"
-            "不加的話，這支腳本只會同步 sailing_schedule（船期參考表，不受影響）。"
-        ),
-    )
     args = parser.parse_args()
 
     script_dir = Path(__file__).resolve().parent
@@ -230,31 +218,19 @@ def main():
     client = SupabaseClient(supabase_url, service_key)
     headers = {**client.headers, "Content-Type": "application/json"}
 
-    # shipments：資料源頭已改成網站（三方直接編輯追蹤欄位），預設不再從 Excel
-    # 覆蓋，避免蓋掉別人剛在網站上填的資料。只有明確加 --sync-shipments-too
-    # 才會執行，且會印出警告。
-    if args.sync_shipments_too:
-        print(
-            "\n⚠️  --sync-shipments-too 已啟用：即將用 Excel 內容整列覆蓋 shipments，"
-            "這會蓋掉三方在網站上編輯過的追蹤欄位（HTW検査日程／出荷船／日本入荷日等）。"
+    # shipments：只 upsert，不刪除
+    upserted = 0
+    for row in shipments:
+        resp = requests.post(
+            f"{client.url}/rest/v1/shipments",
+            headers={**headers, "Prefer": "resolution=merge-duplicates,return=minimal"},
+            params={"on_conflict": "id"},
+            json={**row, "updated_at": "now()"},
+            timeout=30,
         )
-        upserted = 0
-        for row in shipments:
-            resp = requests.post(
-                f"{client.url}/rest/v1/shipments",
-                headers={**headers, "Prefer": "resolution=merge-duplicates,return=minimal"},
-                params={"on_conflict": "id"},
-                json={**row, "updated_at": "now()"},
-                timeout=30,
-            )
-            resp.raise_for_status()
-            upserted += 1
-        print(f"shipments upsert：{upserted} 筆")
-    else:
-        print(
-            "shipments：略過（資料源頭已改成網站直接編輯，如需整批覆蓋請加 "
-            "--sync-shipments-too，會蓋掉網站上的編輯，請小心使用）"
-        )
+        resp.raise_for_status()
+        upserted += 1
+    print(f"shipments upsert：{upserted} 筆")
 
     # sailing_schedule：全刪重建
     resp = requests.delete(

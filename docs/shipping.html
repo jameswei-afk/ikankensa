@@ -34,42 +34,6 @@
       <div id="scheduleTable" class="schedule-table"></div>
     </details>
 
-    <details id="newOrderDetails" class="new-order-details">
-      <summary data-i18n="new_order_summary">＋ 新しい注文を追加</summary>
-      <form id="newOrderForm" class="new-order-form">
-        <label>
-          <span data-i18n="ship_col_customer">得意先</span>
-          <input type="text" id="newCustomer" />
-        </label>
-        <label>
-          <span data-i18n="ship_col_partno">品番</span>
-          <input type="text" id="newPartNo" />
-        </label>
-        <label>
-          <span data-i18n="ship_col_order_no">発注No</span>
-          <input type="text" id="newOrderNo" required />
-        </label>
-        <label>
-          <span data-i18n="ship_col_line_no">行No</span>
-          <input type="text" id="newLineNo" required />
-        </label>
-        <label>
-          <span data-i18n="ship_col_order_qty">発注数量</span>
-          <input type="number" id="newOrderQty" />
-        </label>
-        <label>
-          <span data-i18n="ship_col_delivery_type">納品種別(分納)</span>
-          <input type="text" id="newDeliveryType" />
-        </label>
-        <label>
-          <span data-i18n="ship_col_due">発注納期</span>
-          <input type="date" id="newOrderDueDate" />
-        </label>
-        <button type="submit" data-i18n="new_order_submit">追加する</button>
-        <div id="newOrderMsg" class="form-msg"></div>
-      </form>
-    </details>
-
     <div id="shipmentTableWrap"></div>
     <div class="footer-note" data-i18n="footer_note"></div>
   </div>
