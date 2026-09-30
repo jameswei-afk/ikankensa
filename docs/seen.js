@@ -10,9 +10,12 @@ function getSeenMap() {
   }
 }
 
-function markItemSeen(itemId) {
+function markItemSeen(itemId, atIso) {
+  // atIso を渡すときはサーバー側の created_at 等、サーバー時刻を使うこと。
+  // クライアント時計がサーバーより遅れていると、自分がいま投稿したコメントが
+  // 直後に「未読」として表示されてしまうため（new Date() だけに頼らない）。
   const map = getSeenMap();
-  map[itemId] = new Date().toISOString();
+  map[itemId] = atIso || new Date().toISOString();
   localStorage.setItem(SEEN_KEY, JSON.stringify(map));
 }
 

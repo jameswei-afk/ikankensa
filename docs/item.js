@@ -279,7 +279,7 @@ function subscribeToComments() {
         if (currentComments.some((c) => c.id === payload.new.id)) return;
         const { edit_token, ...comment } = payload.new;
         currentComments.push(comment);
-        markItemSeen(itemId);
+        markItemSeen(itemId, comment.created_at);
         renderComments();
       }
     )
@@ -338,7 +338,7 @@ async function postComment() {
   if (data && !currentComments.some((c) => c.id === data.id)) {
     currentComments.push(data);
     saveMyToken(data.id, token);
-    markItemSeen(itemId);
+    markItemSeen(itemId, data.created_at);
     renderComments();
   }
 
